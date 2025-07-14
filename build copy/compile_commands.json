@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/himawari/cigrid_llvm/cigrid-llvm/build",
+  "command": "/usr/bin/c++ -I/home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/include -std=gnu++20 -Wall -Wextra -Wno-unused-parameter -g -o external/fmt/CMakeFiles/fmt.dir/src/format.cc.o -c /home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/src/format.cc",
+  "file": "/home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/src/format.cc",
+  "output": "external/fmt/CMakeFiles/fmt.dir/src/format.cc.o"
+},
+{
+  "directory": "/home/himawari/cigrid_llvm/cigrid-llvm/build",
+  "command": "/usr/bin/c++ -I/home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/include -std=gnu++20 -Wall -Wextra -Wno-unused-parameter -g -o external/fmt/CMakeFiles/fmt.dir/src/os.cc.o -c /home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/src/os.cc",
+  "file": "/home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/src/os.cc",
+  "output": "external/fmt/CMakeFiles/fmt.dir/src/os.cc.o"
+},
+{
+  "directory": "/home/himawari/cigrid_llvm/cigrid-llvm/build",
+  "command": "/usr/bin/c++ -I/home/himawari/cigrid_llvm/cigrid-llvm/include -I/home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/include -isystem /usr/lib/llvm-18/include -std=gnu++20   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -Wall -Wextra -Wno-unused-parameter -g -o src/CMakeFiles/cigrid.dir/main.cpp.o -c /home/himawari/cigrid_llvm/cigrid-llvm/src/main.cpp",
+  "file": "/home/himawari/cigrid_llvm/cigrid-llvm/src/main.cpp",
+  "output": "src/CMakeFiles/cigrid.dir/main.cpp.o"
+},
+{
+  "directory": "/home/himawari/cigrid_llvm/cigrid-llvm/build",
+  "command": "/usr/bin/c++ -I/home/himawari/cigrid_llvm/cigrid-llvm/include -I/home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/include -isystem /usr/lib/llvm-18/include -std=gnu++20   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -Wall -Wextra -Wno-unused-parameter -g -o src/CMakeFiles/cigrid.dir/lexer/lexer.cpp.o -c /home/himawari/cigrid_llvm/cigrid-llvm/src/lexer/lexer.cpp",
+  "file": "/home/himawari/cigrid_llvm/cigrid-llvm/src/lexer/lexer.cpp",
+  "output": "src/CMakeFiles/cigrid.dir/lexer/lexer.cpp.o"
+},
+{
+  "directory": "/home/himawari/cigrid_llvm/cigrid-llvm/build",
+  "command": "/usr/bin/c++ -I/home/himawari/cigrid_llvm/cigrid-llvm/include -I/home/himawari/cigrid_llvm/cigrid-llvm/external/fmt/include -isystem /usr/lib/llvm-18/include -std=gnu++20   -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -Wall -Wextra -Wno-unused-parameter -g -o src/CMakeFiles/cigrid.dir/diagnostics/diagnostics.cpp.o -c /home/himawari/cigrid_llvm/cigrid-llvm/src/diagnostics/diagnostics.cpp",
+  "file": "/home/himawari/cigrid_llvm/cigrid-llvm/src/diagnostics/diagnostics.cpp",
+  "output": "src/CMakeFiles/cigrid.dir/diagnostics/diagnostics.cpp.o"
+}
+]

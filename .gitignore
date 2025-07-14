@@ -1,0 +1,34 @@
+# 忽略主项目的构建目录
+/build/
+
+# 忽略 LLVM 的构建和安装目录
+/external/llvm-project/build/
+/external/llvm-project/install/
+
+# 忽略 CMake 的缓存文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# 忽略 Ninja 构建文件
+build.ninja
+.ninja_deps
+.ninja_log
+
+# 忽略编译生成的对象文件和可执行文件（如果你在顶层构建）
+*.o
+*.a
+*.so
+*.exe
+*.out
+
+# 忽略 clangd 的工作缓存（如果你在 VSCode 中开发）
+.cache/
+.clangd/
+compile_commands.json
+
+# 忽略日志或临时文件
+*.log
+*.tmp
+*.swp

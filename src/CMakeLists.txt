@@ -1,10 +1,19 @@
+# 启用 GCC 或 Clang 的彩色警告输出
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-fcolor-diagnostics)
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    add_compile_options(-fdiagnostics-color=always)
+endif ()
+
 # 枚举出所有要编译的源文件，确保 main.cpp 一定被包含
 set(SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/lexer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/diagnostics.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/parser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ast_printer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/lexer/lexer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/diagnostics/diagnostics.cpp
-    # …如果后面又加了新模块，记得在这里加
 )
+
 
 add_executable(cigrid ${SOURCES})
 

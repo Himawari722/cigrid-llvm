@@ -4,6 +4,7 @@
 # 忽略 LLVM 的构建和安装目录
 /external/llvm-project/build/
 /external/llvm-project/install/
+/external/llvm-install_Release/
 
 # 忽略 CMake 的缓存文件
 CMakeCache.txt

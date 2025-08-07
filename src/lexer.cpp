@@ -2,34 +2,47 @@
 #include "fmt/core.h"
 
 #include <cctype>
-#include <iostream>
 #include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
 
-Lexer::Lexer(std::string_view input, Diagnostics &diag) : source(input), diag(diag) { next_char(); }
+Lexer::Lexer(std::string_view input, Diagnostics &diag)
+    : source(input), diag(diag) {
+  next_char();
+}
 
 std::vector<Token> Lexer::gen_token() {
-  // next_token returns optional<token>, so can be place inside while
-  while (auto token_opt = next_token()) {
-    // dereference to get the Token inside optional object
-    auto &token = *token_opt;
-    token_list.push_back(*token_opt);
-    // token_list.push_back(std::move(*token_opt));
-    if (std::holds_alternative<EndOfFile>(token.kind))
+  while (auto token_option = next_token()) {
+    auto token = token_option.value();
+    token_list.push_back(token);
+    // token_list.push_back(std::move(token));
+    if (token.kind == TokenKind::END_OF_FILE) {
       break;
+    }
+    if (token.kind == TokenKind::BAD) {
+      diag.error(token.pos, "bad token encountered");
+      break;
+    }
   }
   return token_list;
 }
 
 void Lexer::print_token_list() {
   for (const auto &token : token_list) {
-    // Only suppor single file here;
-    fmt::print("{:<20}{}\n", fmt::format("{}:{}:{}", "input_file", token.line, token.column), token.lexeme);
+    // Only suppor single file here
+    fmt::print(
+        "{:<20}{}\n",
+        fmt::format("{}:{}:{}", "input_file", token.pos.line, token.pos.column),
+        token.lexeme);
   }
 }
 
 void Lexer::next_char() {
-  if (current_pos >= size)
-    at_eof = true;
+  if (current_pos >= size) {
+    return;
+  }
+
   else {
     current_char = source[current_pos++];
     current_column++;
@@ -38,6 +51,10 @@ void Lexer::next_char() {
     current_line++;
     current_column = 1;
   }
+
+  if (current_pos >= size) {
+    at_eof = true;
+  }
 }
 
 std::optional<Token> Lexer::next_token() {
@@ -45,12 +62,12 @@ std::optional<Token> Lexer::next_token() {
     skip_space();
 
   if (at_eof)
-    return Token(EndOfFile(), "EOF", current_line, current_column);
+    return Token(TokenKind::END_OF_FILE, "EOF",
+                 Position{current_line, current_column});
 
   // Taking a snapshot of the start of the current lexeme
   start_line = current_line;
-  start_column = current_column-1;
-  
+  start_column = current_column - 1;
 
   if (current_char == '#') {
     skip_line();
@@ -100,15 +117,18 @@ std::optional<Token> Lexer::read_char() {
       value = '\"';
       break;
     default:
-      // Illegal Escape Character, in g++ this is a warning instead of error though
-      diag.error(start_line, start_column, fmt::format("unknown escape sequence: \'\\{}\'", current_char));
+      // Illegal Escape Character, in g++ this is a warning instead of error
+      // though
+      diag.error(
+          Position{start_line, start_column},
+          fmt::format("unknown escape sequence: \'\\{}\'", current_char));
     }
   }
 
   // '' not legal:
   // g++ says the situation above is empty character constant
   else if (current_char == '\"') {
-    diag.error(start_line, start_column, "empty character constant");
+    diag.error(Position{start_line, start_column}, "empty character constant");
   }
 
   else {
@@ -119,15 +139,15 @@ std::optional<Token> Lexer::read_char() {
 
   if (current_char == '\'') {
     next_char();
-    std::string lexeme = {'\'', value, '\''};
-    return Token(CharToken(value), std::string(lexeme), start_line,
-                 start_column);
+    std::string lexeme = fmt::format("'{}'", value);
+    return Token(TokenKind::CHAR_LITERAL, std::move(lexeme),
+                 Position{start_line, start_column}, value);
   }
 
   // Default case: the char did not end with ', should throw error
   // g++ says: error: missing terminating ' character
-  return Token(Kind::BAD, "missing terminating \' character", current_line,
-               current_column);
+  return Token{TokenKind::BAD, "missing terminating \' character",
+               Position{start_line, start_column}};
 }
 
 std::optional<Token> Lexer::read_ident_or_keyword() {
@@ -138,13 +158,13 @@ std::optional<Token> Lexer::read_ident_or_keyword() {
     lexeme += current_char;
     next_char();
   }
-
   if (keyword_map.contains(lexeme)) {
-    return Token(keyword_map.at(lexeme), std::string(lexeme), start_line,
-                 start_column);
-  } else
-    return Token(IdentToken(lexeme), std::string(lexeme), start_line,
-                 start_column);
+    return Token{keyword_map.at(lexeme), std::move(lexeme),
+                 Position{start_line, start_column}};
+  } else {
+    return Token{TokenKind::IDENTIFIER, std::string(lexeme),
+                 Position{start_line, start_column}, std::move(lexeme)};
+  }
 }
 
 std::optional<Token> Lexer::read_num() {
@@ -181,7 +201,8 @@ std::optional<Token> Lexer::read_num() {
         }
         next_char();
       }
-      return Token(IntToken(k), std::string(lexeme), start_line, start_column);
+      return Token{TokenKind::INT_LITERAL, std::move(lexeme),
+                   Position{start_line, start_column}, k};
     }
   }
 
@@ -193,7 +214,8 @@ std::optional<Token> Lexer::read_num() {
     lexeme += current_char;
     next_char();
   }
-  return Token(IntToken(k), std::string(lexeme), start_line, start_column);
+  return Token{TokenKind::INT_LITERAL, std::move(lexeme),
+               Position{start_line, start_column}, k};
 }
 
 std::optional<Token> Lexer::read_string() {
@@ -220,16 +242,20 @@ std::optional<Token> Lexer::read_string() {
         lexeme += '\"';
         break;
       default:
-        // Illegal Escape Character, in g++ this is a warning instead of error though
-        diag.error(start_line, start_column, fmt::format("unknown escape sequence: \'\\{}\'", current_char));
+        // Illegal Escape Character, in g++ this is a warning instead of error
+        // though
+        diag.error(
+            Position{start_line, start_column},
+            fmt::format("unknown escape sequence: \'\\{}\'", current_char));
       }
     }
 
     else if (current_char == '\n') {
-      // According to g++, an newline after double quote is illegal
-      diag.error(start_line, start_column, "missing terminating \" character");
-      return Token(Kind::BAD, "missing terminating \" character", current_line,
-                   current_column);
+      // According to g++, an newline in double quote is illegal
+      diag.error(Position{start_line, start_column},
+                 "missing terminating \" character");
+      return Token{TokenKind::BAD, "missing terminating \" character",
+                   Position{start_line, start_column}};
     }
 
     else {
@@ -238,65 +264,71 @@ std::optional<Token> Lexer::read_string() {
 
     next_char();
   }
-  return Token(StringToken(lexeme), lexeme, start_line, start_column);
+  next_char(); // Consume the terminating quote
+  std::string lexeme_with_quote = fmt::format("\"{}\"", lexeme);
+  return Token(TokenKind::STRING_LITERAL, std::move(lexeme_with_quote),
+               Position(start_line, start_column), std::move(lexeme));
 }
 
 std::optional<Token> Lexer::read_symbol() {
   switch (current_char) {
   case '~':
     next_char();
-    return Token(Kind::BITWISE_NOT, "~", start_line, start_column);
+    return Token(TokenKind::BITWISE_NOT, "~",
+                 Position(start_line, start_column));
   case '+':
     next_char();
-    return Token(Kind::PLUS, "+", start_line, start_column);
+    return Token(TokenKind::PLUS, "+", Position(start_line, start_column));
   case '-':
     next_char();
-    return Token(Kind::MINUS, "-", start_line, start_column);
+    return Token(TokenKind::MINUS, "-", Position(start_line, start_column));
   case '*':
     next_char();
-    return Token(Kind::MULTIPLY, "*", start_line, start_column);
+    return Token(TokenKind::MULTIPLY, "*", Position(start_line, start_column));
   case '^':
     next_char();
-    return Token(Kind::EXPONENTIAL, "^", start_line, start_column);
+    return Token(TokenKind::EXPONENTIAL, "^",
+                 Position(start_line, start_column));
   case '%':
     next_char();
-    return Token(Kind::MODULUS, "%", start_line, start_column);
+    return Token(TokenKind::MODULUS, "%", Position(start_line, start_column));
   case '(':
     next_char();
-    return Token(Kind::LPAREN, "(", start_line, start_column);
+    return Token(TokenKind::LPAREN, "(", Position(start_line, start_column));
   case ')':
     next_char();
-    return Token(Kind::RPAREN, ")", start_line, start_column);
+    return Token(TokenKind::RPAREN, ")", Position(start_line, start_column));
   case '[':
     next_char();
-    return Token(Kind::LBRACKET, "[", start_line, start_column);
+    return Token(TokenKind::LBRACKET, "[", Position(start_line, start_column));
   case ']':
     next_char();
-    return Token(Kind::RBRACKET, "]", start_line, start_column);
+    return Token(TokenKind::RBRACKET, "]", Position(start_line, start_column));
   case '{':
     next_char();
-    return Token(Kind::LBRACE, "{", start_line, start_column);
+    return Token(TokenKind::LBRACE, "{", Position(start_line, start_column));
   case '}':
     next_char();
-    return Token(Kind::RBRACE, "}", start_line, start_column);
+    return Token(TokenKind::RBRACE, "}", Position(start_line, start_column));
   case ';':
     next_char();
-    return Token(Kind::SEMICOLON, ";", start_line, start_column);
+    return Token(TokenKind::SEMICOLON, ";", Position(start_line, start_column));
   case ',':
     next_char();
-    return Token(Kind::COMMA, ",", start_line, start_column);
+    return Token(TokenKind::COMMA, ",", Position(start_line, start_column));
   case '.':
     next_char();
-    return Token(Kind::PERIOD, ".", start_line, start_column);
+    return Token(TokenKind::PERIOD, ".", Position(start_line, start_column));
 
   case '!': {
     next_char();
     switch (current_char) {
     case '=':
       next_char();
-      return Token(Kind::NOT_EQUAL, "!=", start_line, start_column);
+      return Token(TokenKind::NOT_EQUAL,
+                   "!=", Position(start_line, start_column));
     default:
-      return Token(Kind::NOT, "!", start_line, start_column);
+      return Token(TokenKind::NOT, "!", Position(start_line, start_column));
     }
   }
   // Ignore pre-processing, need to be implemented for real c++ code
@@ -323,9 +355,9 @@ std::optional<Token> Lexer::read_symbol() {
         }
       }
       if (current_pos >= size) {
-        diag.error(start_line, start_column, "unterminated comment");
-        return Token(Kind::BAD, "unterminated comment", start_line,
-                     start_column);
+        diag.error(Position(start_line, start_column), "unterminated comment");
+        return Token(TokenKind::BAD, "unterminated comment",
+                     Position(start_line, start_column));
       }
       next_char();
       return next_token();
@@ -333,7 +365,7 @@ std::optional<Token> Lexer::read_symbol() {
 
     else {
       next_char();
-      return Token(Kind::DIVIDE, "/", start_line, start_column);
+      return Token(TokenKind::DIVIDE, "/", Position(start_line, start_column));
     }
   }
 
@@ -342,12 +374,15 @@ std::optional<Token> Lexer::read_symbol() {
     switch (current_char) {
     case '<':
       next_char();
-      return Token(Kind::SHIFT_LEFT, "<<", start_line, start_column);
+      return Token(TokenKind::SHIFT_LEFT, "<<",
+                   Position(start_line, start_column));
     case '=':
       next_char();
-      return Token(Kind::LESS_EQUAL, "<=", start_line, start_column);
+      return Token(TokenKind::LESS_EQUAL,
+                   "<=", Position(start_line, start_column));
     default:
-      return Token(Kind::LESS_THAN, "<", start_line, start_column);
+      return Token(TokenKind::LESS_THAN, "<",
+                   Position(start_line, start_column));
     }
   }
 
@@ -356,12 +391,15 @@ std::optional<Token> Lexer::read_symbol() {
     switch (current_char) {
     case '>':
       next_char();
-      return Token(Kind::SHIFT_RIGHT, ">>", start_line, start_column);
+      return Token(TokenKind::SHIFT_RIGHT, ">>",
+                   Position(start_line, start_column));
     case '=':
       next_char();
-      return Token(Kind::LARGER_EQUAL, ">=", start_line, start_column);
+      return Token(TokenKind::LARGER_EQUAL,
+                   ">=", Position(start_line, start_column));
     default:
-      return Token(Kind::LARGER_THAN, ">", start_line, start_column);
+      return Token(TokenKind::LARGER_THAN, ">",
+                   Position(start_line, start_column));
     }
   }
 
@@ -370,9 +408,9 @@ std::optional<Token> Lexer::read_symbol() {
     switch (current_char) {
     case '=':
       next_char();
-      return Token(Kind::EQUAL, "==", start_line, start_column);
+      return Token(TokenKind::EQUAL, "==", Position(start_line, start_column));
     default:
-      return Token(Kind::ASSIGN, "=", start_line, start_column);
+      return Token(TokenKind::ASSIGN, "=", Position(start_line, start_column));
     }
   }
 
@@ -381,9 +419,11 @@ std::optional<Token> Lexer::read_symbol() {
     switch (current_char) {
     case '|':
       next_char();
-      return Token(Kind::LOGICAL_OR, "||", start_line, start_column);
+      return Token(TokenKind::LOGICAL_OR, "||",
+                   Position(start_line, start_column));
     default:
-      return Token(Kind::BITWISE_OR, "|", start_line, start_column);
+      return Token(TokenKind::BITWISE_OR, "|",
+                   Position(start_line, start_column));
     }
   }
 
@@ -392,16 +432,19 @@ std::optional<Token> Lexer::read_symbol() {
     switch (current_char) {
     case '&':
       next_char();
-      return Token(Kind::LOGICAL_AND, "&&", start_line, start_column);
+      return Token(TokenKind::LOGICAL_AND, "&&",
+                   Position(start_line, start_column));
     default:
-      return Token(Kind::BITWISE_AND, "&", start_line, start_column);
+      return Token(TokenKind::BITWISE_AND, "&",
+                   Position(start_line, start_column));
     }
   }
 
   default: {
-    diag.error(start_line, start_column, "undefined symbol");
+    diag.error(Position(start_line, start_column), "undefined symbol");
     next_char();
-    return Token(Kind::BAD, "undefined symbol", start_line, start_column);
+    return Token(TokenKind::BAD, "undefined symbol",
+                 Position(start_line, start_column));
   }
   }
 }

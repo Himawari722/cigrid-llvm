@@ -1,0 +1,1 @@
+../build/cigrid --pretty-print ../tests/test.cpp
